@@ -104,21 +104,22 @@ void DmaHalfTransferCallback(DMA_HandleTypeDef * hdma){
 	//если передали все светодиоды, то останавливаем ДМА
 	if (num_leds>(MAX_LEDS-1)){
 		num_leds = 0;
-		first_entry_kostyl = 0;
-
 		__HAL_TIM_DISABLE(&htim1);
 		__HAL_TIM_DISABLE_DMA(&htim1, TIM_DMA_UPDATE);
 		HAL_DMA_Abort_IT(&hdma_tim1_up);
-		DMA_busy = 0;
+
 	} else {
 		//*************************************************************************************
 		//* Костыль, на предпоследнем светодиоде.
 		//*	в котором обнуляем начало выходного буфера. Если его не применить, то в конце посылки поступает еще несколько бит с начала буфера,
 		//* из-за достаточно быстрой работой ДМА, а также режимиа Circular, его отключение происходит немного позже. Получается что ДМА еще фактически работает,
 		//* но в ленту ws2812 летят уже нули.
-		if ((num_leds==(MAX_LEDS-1))&&(!first_entry_kostyl)) {
-				kostyl();
-				first_entry_kostyl = 1;
+		if (num_leds==(MAX_LEDS-1)) {
+				if (num_leds&1) {
+					for (int i = 0; i < 35; i++){buff[i] = 0<<1;}
+				}else{
+					for (int i = 0; i < 35; i++){buff[i+72] = 0<<1;}
+				}
 		} else {
 			//будем готовить переданную половину буфера следующим светодиодом
 				from_image_to_buff(num_leds+1, num_leds&0x01);
